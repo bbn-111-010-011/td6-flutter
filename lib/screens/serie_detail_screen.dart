@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/serie_provider.dart';
+
 import '../models/serie.dart';
+import '../providers/favoris_provider.dart';
+import '../providers/serie_provider.dart';
+import '../providers/watchlist_provider.dart';
 
 class SerieDetailScreen extends StatelessWidget {
   final int serieId;
@@ -21,6 +24,10 @@ class SerieDetailScreen extends StatelessWidget {
 
           if (snapshot.hasError) {
             return Center(child: Text('Erreur : ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(child: Text('Série introuvable.'));
           }
 
           final serie = snapshot.data!;
@@ -47,7 +54,57 @@ class SerieDetailScreen extends StatelessWidget {
                   Text('★ ${serie.note!.toStringAsFixed(1)}'),
                 const SizedBox(height: 8),
                 Text(serie.synopsis),
-                // Boutons favoris et watchlist à ajouter ici
+                const SizedBox(height: 16),
+                Consumer<FavorisProvider>(
+                  builder: (context, favorisProvider, _) {
+                    final estFavori = favorisProvider.estFavori(serie.id);
+
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => favorisProvider.toggleFavori(serie),
+                        icon: Icon(
+                          estFavori ? Icons.favorite : Icons.favorite_border,
+                        ),
+                        label: Text(
+                          estFavori
+                              ? 'Retirer des favoris'
+                              : 'Ajouter aux favoris',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                Consumer<WatchlistProvider>(
+                  builder: (context, watchlistProvider, _) {
+                    final estPresente =
+                        watchlistProvider.estDansWatchlist(serie.id);
+
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          if (estPresente) {
+                            watchlistProvider.retirerSerie(serie.id);
+                          } else {
+                            watchlistProvider.ajouterASerie(serie);
+                          }
+                        },
+                        icon: Icon(
+                          estPresente
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                        ),
+                        label: Text(
+                          estPresente
+                              ? 'Retirer de la watchlist'
+                              : 'Ajouter à la watchlist',
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           );

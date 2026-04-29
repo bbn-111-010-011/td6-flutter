@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/favoris_provider.dart';
 import '../providers/serie_provider.dart';
 
 class SerieListScreen extends StatefulWidget {
@@ -14,7 +16,7 @@ class _SerieListScreenState extends State<SerieListScreen> {
   @override
   void initState() {
     super.initState();
-    // Déclenche le chargement après la construction du premier frame
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SerieProvider>().fetchSeries();
     });
@@ -41,13 +43,16 @@ class _SerieListScreenState extends State<SerieListScreen> {
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
+
           if (provider.error != null) {
             return Center(child: Text(provider.error!));
           }
+
           return ListView.builder(
             itemCount: provider.series.length,
             itemBuilder: (context, index) {
               final serie = provider.series[index];
+
               return ListTile(
                 leading: serie.imageUrl != null
                     ? Image.network(
@@ -58,9 +63,34 @@ class _SerieListScreenState extends State<SerieListScreen> {
                     : const Icon(Icons.tv),
                 title: Text(serie.nom),
                 subtitle: Text('${serie.genre} · ${serie.statut}'),
-                trailing: serie.note != null
-                    ? Text('★ ${serie.note!.toStringAsFixed(1)}')
-                    : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (serie.note != null)
+                      Text('★ ${serie.note!.toStringAsFixed(1)}'),
+                    const SizedBox(width: 8),
+                    Consumer<FavorisProvider>(
+                      builder: (context, favorisProvider, _) {
+                        final estFavori = favorisProvider.estFavori(serie.id);
+
+                        return IconButton(
+                          tooltip: estFavori
+                              ? 'Retirer des favoris'
+                              : 'Ajouter aux favoris',
+                          icon: Icon(
+                            estFavori
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: estFavori ? Colors.red : null,
+                          ),
+                          onPressed: () {
+                            favorisProvider.toggleFavori(serie);
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
                 onTap: () => context.go('/serie/${serie.id}'),
               );
             },
